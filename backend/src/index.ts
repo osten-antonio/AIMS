@@ -32,9 +32,9 @@ const frontendHostname = process.env.FRONTEND_HOSTNAME ?? 'localhost';
 const frontendPort = process.env.FRONTEND_PORT ?? '3000';
 const allowedOrigin = `${frontendProtocol}://${frontendHostname}${frontendPort ? `:${frontendPort}` : ''}`;
 
-const backendProtocol = process.env.BACKEND_PROTOCOL ?? 'http';
-const backendHostname = process.env.BACKEND_HOSTNAME ?? 'localhost';
-const backendPort = process.env.BACKEND_PORT ?? '8000';
+const _backendProtocol = process.env.BACKEND_PROTOCOL ?? 'http';
+const _backendHostname = process.env.BACKEND_HOSTNAME ?? 'localhost';
+const _backendPort = process.env.BACKEND_PORT ?? '8000';
 
 // middleware
 app.use(express.json());

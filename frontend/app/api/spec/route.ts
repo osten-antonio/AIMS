@@ -36,7 +36,7 @@ export async function GET() {
   };
 
   // Only include backend paths that actually have a frontend route.
-  const remappedPaths: Record<string, any> = {};
+  const remappedPaths: Record<string, unknown> = {};
   for (const [backendPath, frontendPath] of Object.entries(pathMap)) {
     if (spec.paths?.[backendPath]) {
       remappedPaths[frontendPath] = spec.paths[backendPath];

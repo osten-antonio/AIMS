@@ -3,7 +3,7 @@ import type { CalculationResult, CalculationStep } from "../../lib/statistics/ty
 import { fmt, sanitizeForJson } from "./utils";
 
 export function boxPlotWithSteps(values: number[]): CalculationResult {
-  const value = math.boxPlotSummary(values) as any;
+  const value = math.boxPlotSummary(values);
   const cleaned = values.filter(v => Number.isFinite(v)).sort((a, b) => a - b);
   const n = cleaned.length;
   const min = value.min;
@@ -77,7 +77,7 @@ export function boxPlotWithSteps(values: number[]): CalculationResult {
 }
 
 export function specialMeansWithSteps(values: number[], trimPercent?: number, trimCount?: number): CalculationResult {
-  const value = math.specialMeans(values, trimPercent, trimCount) as any;
+  const value = math.specialMeans(values, trimPercent, trimCount);
   const sorted = [...values].sort((a, b) => a - b);
   const q = value.quartiles;
   const trimean = value.trimean;

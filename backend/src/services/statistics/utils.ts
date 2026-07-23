@@ -6,11 +6,11 @@ export function fmt(n: number, digits = 4) {
   return Number(n.toFixed(digits)).toString();
 }
 
-export function sanitizeForJson(v: any): any {
+export function sanitizeForJson(v: unknown): unknown {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
   if (Array.isArray(v)) return v.map(sanitizeForJson);
   if (v && typeof v === "object") {
-    const out: any = Array.isArray(v) ? [] : {};
+    const out: Record<string, unknown> = {};
     for (const [k, val] of Object.entries(v)) {
       out[k] = sanitizeForJson(val);
     }

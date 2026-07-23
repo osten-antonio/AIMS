@@ -3,7 +3,7 @@ import type { CalculationResult, CalculationStep } from "../../lib/statistics/ty
 import { fmt, sanitizeForJson } from "./utils";
 
 export function oneSampleTTestWithSteps(values: number[], mu0: number, alpha = 0.05): CalculationResult {
-  const value = math.oneSampleTTest(values, mu0, alpha) as any;
+  const value = math.oneSampleTTest(values, mu0, alpha);
   const n = values.length;
   const xBar = value.sampleMean;
   const s = value.sampleStdDev;
@@ -12,7 +12,7 @@ export function oneSampleTTestWithSteps(values: number[], mu0: number, alpha = 0
   const t = value.tStatistic;
   const tCritical = value.tCritical;
 
-  const sum = values.reduce((a, b) => a + b, 0);
+  const _sum = values.reduce((a, b) => a + b, 0);
   const sumDisplay = n <= 8
     ? values.map(x => fmt(x)).join(" + ")
     : values.slice(0, 5).map(x => fmt(x)).join(" + ") + " + ... + " + fmt(values[n - 1]!);
@@ -20,7 +20,7 @@ export function oneSampleTTestWithSteps(values: number[], mu0: number, alpha = 0
   const squaredDeviations = values.map(x => Math.pow(x - xBar, 2));
   const sumSquaredDev = squaredDeviations.reduce((a, b) => a + b, 0);
 
-  const absT = Math.abs(t);
+  const _absT = Math.abs(t);
   const reject = value.reject;
 
   const steps: CalculationStep[] = [
@@ -93,7 +93,7 @@ export function oneSampleTTestWithSteps(values: number[], mu0: number, alpha = 0
 }
 
 export function pairedTTestWithSteps(before: number[], after: number[], alpha = 0.05): CalculationResult {
-  const value = math.pairedTTest(before, after, alpha) as any;
+  const value = math.pairedTTest(before, after, alpha);
   const n = before.length;
   const differences = before.map((b, i) => after[i]! - b);
   const dBar = value.meanDiff;
@@ -203,16 +203,16 @@ export function independentTTestStatsWithSteps(
   alpha = 0.05,
   tails: 1 | 2 = 2,
 ): CalculationResult {
-  const value = math.independentTTestFromStats(group1, group2, alpha, tails) as any;
+  const value = math.independentTTestFromStats(group1, group2, alpha, tails);
   const { n: n1, mean: x1Bar, sd: s1 } = group1;
   const { n: n2, mean: x2Bar, sd: s2 } = group2;
   const var1 = s1 * s1;
   const var2 = s2 * s2;
   const useWelch = value.method === "welch";
 
-  const [largerVar, smallerVar, dfNum, dfDen] =
+  const [largerVar, smallerVar] =
     var1 >= var2 ? [var1, var2, n1 - 1, n2 - 1] : [var2, var1, n2 - 1, n1 - 1];
-  const fStat = largerVar / smallerVar;
+  const _fStat = largerVar / smallerVar;
 
   let se = 0;
   let pooledVar = 0;
@@ -230,7 +230,7 @@ export function independentTTestStatsWithSteps(
   const t = value.tStatistic;
   const df = value.df;
   const tCritical = value.tCritical;
-  const absT = Math.abs(t);
+  const _absT = Math.abs(t);
   const reject = value.reject;
   const h1Desc = tails === 2
     ? `• Alternative Hypothesis (H_1): The means of the two groups are different (\\mu_1 \\neq \\mu_2)`

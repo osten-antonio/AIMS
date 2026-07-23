@@ -3,7 +3,7 @@ import type { CalculationResult, CalculationStep } from "../../lib/statistics/ty
 import { fmt, sanitizeForJson } from "./utils";
 
 export function oneWayAnovaWithSteps(groups: number[][]): CalculationResult {
-  const value = math.oneWayAnova(groups) as any;
+  const value = math.oneWayAnova(groups);
   const k = groups.length;
   const all = groups.flat();
   const N = all.length;
@@ -109,7 +109,7 @@ export function oneWayAnovaWithSteps(groups: number[][]): CalculationResult {
 }
 
 export function twoWayAnovaWithSteps(data: number[][][]): CalculationResult {
-  const value = math.twoWayAnova(data) as any;
+  const value = math.twoWayAnova(data);
   const R = data.length;
   const C = data[0]?.length ?? 0;
   const n = data[0]?.[0]?.length ?? 0;

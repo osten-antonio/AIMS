@@ -29,7 +29,7 @@ export function binomialRangeWithSteps(n: number, min: number, max: number, p: n
 }
 
 export function binomialNormalApproxWithSteps(n: number, min: number, max: number, p: number): CalculationResult {
-  const value = math.binomialNormalApproxProbability(n, min, max, p) as any;
+  const value = math.binomialNormalApproxProbability(n, min, max, p);
   const steps: CalculationStep[] = [
     { id: "identify", title: "Identify parameters", description: `n=${n}, p=${p}` },
     { id: "approx", title: "Normal approximation", formula: `\\text{mean}=${fmt(value.mean, 6)}, \\text{sd}=${fmt(value.stdDev, 6)}` },
@@ -55,7 +55,7 @@ export function poissonRangeWithSteps(lambda: number, min: number, max: number):
 }
 
 export function poissonNormalApproxWithSteps(lambda: number, min: number, max: number): CalculationResult {
-  const value = math.poissonNormalApproxProbability(lambda, min, max) as any;
+  const value = math.poissonNormalApproxProbability(lambda, min, max);
   const steps: CalculationStep[] = [
     { id: "identify", title: "Identify parameters", description: `\\lambda=${lambda}` },
     { id: "approx", title: "Normal approximation", calculation: `\\text{mean}=${fmt(value.mean, 6)}, \\text{sd}=${fmt(value.stdDev, 6)}` },

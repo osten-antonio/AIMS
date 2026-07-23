@@ -3,7 +3,7 @@ import type { CalculationResult, CalculationStep } from "../../lib/statistics/ty
 import { fmt, sanitizeForJson } from "./utils";
 
 export function goodnessOfFitWithSteps(observed: number[], expected: number[], alpha = 0.05): CalculationResult {
-  const value = math.goodnessOfFit(observed, expected, alpha) as any;
+  const value = math.goodnessOfFit(observed, expected, alpha);
   const k = observed.length;
 
   const contributions: number[] = [];
@@ -83,7 +83,7 @@ export function goodnessOfFitWithSteps(observed: number[], expected: number[], a
 }
 
 export function chiSquareIndependenceWithSteps(table: number[][], alpha = 0.05): CalculationResult {
-  const value = math.chiSquareIndependence(table, alpha) as any;
+  const value = math.chiSquareIndependence(table, alpha);
   const rows = table.length;
   const cols = table[0]?.length ?? 0;
 

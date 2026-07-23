@@ -3,7 +3,7 @@ import type { CalculationResult, CalculationStep } from "../../lib/statistics/ty
 import { fmt, sanitizeForJson } from "./utils";
 
 export function linearRegressionWithSteps(xValues: number[], yValues: number[], alpha = 0.05): CalculationResult {
-  const value = math.linearRegression(xValues, yValues, alpha) as any;
+  const value = math.linearRegression(xValues, yValues, alpha);
 
   const n = xValues.length;
   const sumX = xValues.reduce((a, b) => a + b, 0);

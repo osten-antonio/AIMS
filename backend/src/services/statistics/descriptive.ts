@@ -3,7 +3,7 @@ import type { CalculationResult, CalculationStep } from "../../lib/statistics/ty
 import { fmt, sanitizeForJson, dataPreview, sortedPreview } from "./utils";
 
 export function descriptiveStatsWithSteps(values: number[]): CalculationResult {
-  const value = math.descriptiveStats(values) as any;
+  const value = math.descriptiveStats(values);
   const n = value.n;
   const sorted = [...values].sort((a, b) => a - b);
   const sum = values.reduce((s, v) => s + v, 0);
