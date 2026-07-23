@@ -1,5 +1,5 @@
 import { evaluate, derivative, matrix, det, inv, simplify, parse } from 'mathjs';
-import { normalizeQuestion, parseNumber } from '../lib/utils';
+import { normalizeQuestion } from '../lib/utils';
 
 export type MathSolveResult = {
     answer: string;
@@ -7,46 +7,26 @@ export type MathSolveResult = {
 };
 
 function cleanLatex(latex: string): string {
-    if (!latex.includes('\\')) return latex;
+    let s = latex;
 
-    return latex
-        .replace(/\\frac\{(.+?)\}\{(.+?)\}/g, '($1)/($2)')
-        .replace(/\\sqrt\{(.+?)\}/g, 'sqrt($1)')
-        .replace(/\\left\(|\\right\)/g, '')
-        .replace(/\\cdot|\\times/g, '*')
-        .replace(/\{(.+?)\}/g, '($1)')
-        .replace(/\\/g, '');
+    s = s.replace(/\\div/g, '/');
+    s = s.replace(/\\frac\{(.+?)\}\{(.+?)\}/g, '($1)/($2)');
+    s = s.replace(/\\sqrt\{(.+?)\}/g, 'sqrt($1)');
+    s = s.replace(/\\left\(|\\right\)/g, '');
+    s = s.replace(/\\left\{|\\right\}/g, '');
+    s = s.replace(/\\cdot|\\times/g, '*');
+
+    s = s.replace(/\\text\{(.+?)\}/g, '');
+    s = s.replace(/\\mathrm\{(.+?)\}/g, '$1');
+
+    // Remaining brace groups (this also catches bare "^{2}" exponents, which
+    // have no backslash and previously skipped this conversion entirely).
+    s = s.replace(/\{(.+?)\}/g, '($1)');
+    s = s.replace(/\\/g, '');
+
+    return s;
 }
 
-function parseSide(side: string, variable: string) {
-    let coeff = 0;
-    let constSum = 0;
-    const varRegex = new RegExp('([+-]?\\s*\\d*\\.?\\d*)\\s*\\*?\\s*' + variable, 'gi');
-    
-    let mVar: RegExpExecArray | null;
-    while ((mVar = varRegex.exec(side)) !== null) {
-        const numStr = mVar[1] ?? '';
-        coeff += parseNumber(numStr);
-    }
-
-    const withoutVars = side.replace(varRegex, ' ');
-    const numRegex = /([+-]?\s*\d*\.?\d+)/g;
-    
-    let mNum: RegExpExecArray | null;
-    while ((mNum = numRegex.exec(withoutVars)) !== null) {
-        const group = mNum[1];
-        if (!group) continue;
-        const n = parseNumber(group);
-        if (!Number.isNaN(n)) constSum += n;
-    }
-
-    return { coeff, constSum };
-}
-
-// Extract a bracketed matrix literal in linear time. A regex with a nested
-// quantifier (e.g. /\[\s*\[.*\]\s*(,\s*\[.*\]\s*)*\]/) backtracks exponentially
-// on inputs like "[[],[],[]..." (ReDoS). The literal always spans from the first
-// '[' to the last ']', so scan for those instead; JSON.parse validates the shape.
 function extractBracketedMatrix(text: string): string | null {
     const start = text.indexOf('[');
     const end = text.lastIndexOf(']');
@@ -62,7 +42,7 @@ export async function tryMathSolve(question: string): Promise<MathSolveResult> {
         try {
             // Extracts the keyword
             const m = q.match(/(?:derive|derivative|differentiate|d\/dx)(?:\s+of)?\s+(.*)/i);
-            
+
             // Clean expr
             let expr = (m && m[1]) ? m[1] : q;
             expr = expr.replace(/\b(derivative|differentiate|d\/dx|of)\b/gi, '').trim();
@@ -78,7 +58,7 @@ export async function tryMathSolve(question: string): Promise<MathSolveResult> {
 
             const resultNode = derivative(expr, variable);
             const simplified = simplify(resultNode);
-            
+
             return { answer: `Derivative: ${simplified.toString()}`, solved: true };
         } catch {
             return { answer: '', solved: false };
@@ -109,10 +89,10 @@ export async function tryMathSolve(question: string): Promise<MathSolveResult> {
         try {
             // Strip command verbs
             const expr = q.replace(/\b(evaluate|calculate|compute|simplify|what is|solve)\b/gi, '').trim();
-            
+
             // Handles non variable expression, 2+2, etc
             const val = evaluate(expr);
-            
+
             if (val !== undefined && val !== null) {
                 // Handle matrix results from evaluation
                 if (val.toArray) {
@@ -125,80 +105,63 @@ export async function tryMathSolve(question: string): Promise<MathSolveResult> {
         }
     }
 
-    // Quadratic & Linear
+
     if (/=/.test(q)) {
         try {
             const parts = q.split('=');
             if (parts.length === 2) {
                 const left = parts[0] || '';
                 const right = parts[1] || '';
-                
-                // Identify the variable character
+
                 const vMatch = q.match(/([a-zA-Z])/);
                 if (vMatch && vMatch[1]) {
                     const variable = vMatch[1];
 
-                    // Check for quadratic (ax^2 + bx + c = 0)
-                    const quadRegex = new RegExp(`${variable}\\s*(\\^\\^?|\\*\\*)\\s*2`);
-                    if (quadRegex.test(q)) {
-                        // Use Math.js to find coefficients by evaluating f(0), f(1), f(-1)
-                        try {
-                            const node = parse(`(${left}) - (${right})`);
-                            const f = node.compile();
+                    try {
+                        const node = parse(`(${left}) - (${right})`);
+                        const f = node.compile();
 
-                            const c = f.evaluate({ [variable]: 0 });
-                            const f1 = f.evaluate({ [variable]: 1 }); // A + B + C
-                            const fm1 = f.evaluate({ [variable]: -1 }); // A - B + C
+                        const c = f.evaluate({ [variable]: 0 });   // C
+                        const f1 = f.evaluate({ [variable]: 1 });  // A + B + C
+                        const fm1 = f.evaluate({ [variable]: -1 }); // A - B + C
 
-                            if (typeof c === 'number' && typeof f1 === 'number' && typeof fm1 === 'number') {
-                                const A = ((f1 + fm1) / 2) - c;
-                                const B = (f1 - fm1) / 2;
-                                const C = c;
+                        if (typeof c === 'number' && typeof f1 === 'number' && typeof fm1 === 'number') {
+                            const A = ((f1 + fm1) / 2) - c;
+                            const B = (f1 - fm1) / 2;
+                            const C = c;
 
-                                // If A is 0, it is not quadratic, fall through to linear
-                                if (Math.abs(A) >= 1e-12) {
-                                    const discriminant = B * B - 4 * A * C;
-                                    
-                                    if (discriminant < 0) {
-                                        // Complex roots
-                                        const realPart = -B / (2 * A);
-                                        const imagPart = Math.sqrt(-discriminant) / (2 * A);
-                                        const sign = imagPart < 0 ? '-' : '+';
-                                        return { answer: `${variable} = ${realPart.toFixed(3)} ${sign} ${Math.abs(imagPart).toFixed(3)}i`, solved: true };
-                                    } else {
-                                        // Real roots
-                                        const x1 = (-B + Math.sqrt(discriminant)) / (2 * A);
-                                        const x2 = (-B - Math.sqrt(discriminant)) / (2 * A);
-                                        
-                                        if (Math.abs(x1 - x2) < 1e-9) {
-                                            return { answer: `${variable} = ${x1}`, solved: true }; // Repeated root
-                                        }
-                                        return { answer: `${variable} = ${x1}, ${x2}`, solved: true };
+                            if (Math.abs(A) >= 1e-12) {
+                                // Genuinely quadratic
+                                const discriminant = B * B - 4 * A * C;
+
+                                if (discriminant < 0) {
+                                    // Complex roots
+                                    const realPart = -B / (2 * A);
+                                    const imagPart = Math.sqrt(-discriminant) / (2 * A);
+                                    const sign = imagPart < 0 ? '-' : '+';
+                                    return { answer: `${variable} = ${realPart.toFixed(3)} ${sign} ${Math.abs(imagPart).toFixed(3)}i`, solved: true };
+                                } else {
+                                    // Real roots
+                                    const x1 = (-B + Math.sqrt(discriminant)) / (2 * A);
+                                    const x2 = (-B - Math.sqrt(discriminant)) / (2 * A);
+
+                                    if (Math.abs(x1 - x2) < 1e-9) {
+                                        return { answer: `${variable} = ${x1}`, solved: true }; // Repeated root
                                     }
+                                    return { answer: `${variable} = ${x1}, ${x2}`, solved: true };
                                 }
+                            } else {
+                                // Linear: B*x + C = 0  ->  x = -C/B
+                                if (Math.abs(B) < 1e-12) {
+                                    return { answer: '', solved: false };
+                                }
+                                const solution = -C / B;
+                                return { answer: `${variable} = ${solution}`, solved: true };
                             }
-                        } catch (e) {
-                            console.error("Quadratic solver failed", e);
                         }
+                    } catch (e) {
+                        console.error("Equation solver failed", e);
                     }
-                    
-                    // Parse both sides to extract coefficients and constants.
-                    // "2x + 1" becomes { coeff: 2, constSum: 1 }
-                    const leftParsed = parseSide(left, variable);
-                    const rightParsed = parseSide(right, variable);
-                    
-                    // Rearrange equation (ax + b = cx + d) -> (a - c)x = (d - b)
-                    const a = leftParsed.coeff - rightParsed.coeff;
-                    const b = rightParsed.constSum - leftParsed.constSum;
-                    
-                    // Prevent division by zero (or near-zero floating point issues)
-                    if (Math.abs(a) < 1e-12) {
-                        return { answer: '', solved: false };
-                    }
-
-                    // ax = b, x = b/a
-                    const solution = b / a;
-                    return { answer: `${variable} = ${solution}`, solved: true };
                 }
             }
         } catch {
