@@ -6,7 +6,9 @@ import { sendErrorResponse } from "../lib/error-response";
 
 export async function steps(req: Request, res: Response) {
     try {
+        console.log('[steps] Request body:', JSON.stringify(req.body));
         const validatedData = stepsRequest.parse(req.body);
+        console.log('[steps] Validated data:', JSON.stringify(validatedData));
         const result = await generateSteps(validatedData);
         return res.status(200).json(result);
     } catch (error: unknown) {

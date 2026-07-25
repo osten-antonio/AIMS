@@ -3,9 +3,10 @@ import { categories } from '../lib/categories';
 
 export const stepsRequest = z.object({
     question: z.string(),
-    answer: z.string(),
+    answer: z.string().default(''),  // Optional for evaluation
     category: z.enum(categories).default('General'),
-    forced: z.boolean().default(false)
+    forced: z.boolean().default(false),
+    model: z.string().optional()
 })
 
 const stepsBase = z.object({

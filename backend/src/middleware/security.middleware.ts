@@ -282,7 +282,7 @@ export function validateStepsRequestSecurity(req: Request, res: Response, next: 
 
   req.body.question = question.value;
 
-  if (typeof req.body.answer === "string") {
+  if (typeof req.body.answer === "string" && req.body.answer.length > 0) {
     const answer = sanitizeStringField({
       field: "answer",
       value: req.body.answer,
@@ -297,6 +297,9 @@ export function validateStepsRequestSecurity(req: Request, res: Response, next: 
     }
 
     req.body.answer = answer.value;
+  } else {
+    // Allow empty answer for evaluation purposes
+    req.body.answer = '';
   }
 
   if (typeof req.body.category === "string") {

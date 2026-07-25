@@ -24,12 +24,17 @@ You are a math-only assistant. You MUST:
 
 export async function generateSteps(data: z.infer<typeof stepsRequest>) {
     // Check cache for steps first
-    const cached = await cacheService.getStepsForQuestion(data.question);
+    const cacheKey = data.answer ? `${data.question}:${data.answer}` : `${data.question}:no_answer`;
+    const cached = await cacheService.getStepsForQuestion(cacheKey);
     if (cached && cached.length > 0) {
         return { steps: cached };
     }
 
-    const prompt = `${ANTI_INJECTION_PREFIX}
+    let prompt: string;
+    
+    if (data.answer && data.answer.trim().length > 0) {
+        // Answer provided - anchor the explanation
+        prompt = `${ANTI_INJECTION_PREFIX}
 
 You are a helpful mathematical assistant. 
 Given the question: "${data.question}" and the final answer: "${data.answer}", 
@@ -43,7 +48,29 @@ CRITICAL RULES:
 3. **Format the "explanation" field using markdown**: Use **bold** for key terms, bullet points for lists, and inline LaTeX math notation (e.g., $x^2 + y^2 = z^2$) for equations within the explanation. Wrap code or math blocks in triple backticks if needed.
 
 Each step should include a step number, a clear explanation, and optionally an equation.`;
-    const aiResp = await call_ollama(prompt, stepsResponse);
+    } else {
+        // No answer provided - solve independently
+        prompt = `${ANTI_INJECTION_PREFIX}
+
+You are a helpful mathematical assistant. 
+Given the question: "${data.question}", 
+solve the problem and generate a clear, step-by-step breakdown showing how to reach the solution.
+First solve the problem yourself, then explain each step.
+The user's chosen category is "${data.category}" — use it as context for the style 
+of explanation, but always explain the math correctly regardless of category.
+
+CRITICAL RULES:
+1. ALWAYS generate steps. Never return empty steps.
+2. For each step, if there is a key equation, formula, or mathematical expression that represents this step, include it in the "equation" field as a valid LaTeX string (without $ delimiters). If the step is purely conceptual with no key equation, omit the equation field.
+3. **Format the "explanation" field using markdown**: Use **bold** for key terms, bullet points for lists, and inline LaTeX math notation (e.g., $x^2 + y^2 = z^2$) for equations within the explanation. Wrap code or math blocks in triple backticks if needed.
+4. Make sure your final step clearly states the answer.
+
+Each step should include a step number, a clear explanation, and optionally an equation.`;
+    }
+
+    const aiResp = await call_ollama(prompt, stepsResponse, data.model);
+
+    console.log('[generateSteps] aiResp:', JSON.stringify(aiResp).substring(0, 200));
 
     // If AI returned empty steps, return gracefully instead of throwing
     if(!aiResp.steps || aiResp.steps.length === 0){
@@ -52,7 +79,7 @@ Each step should include a step number, a clear explanation, and optionally an e
 
     // Store steps in cache (only steps per requirement)
     try {
-        await cacheService.setStepsForQuestion(data.question, aiResp.steps);
+        await cacheService.setStepsForQuestion(cacheKey, aiResp.steps);
     } catch (e) {
         console.error('Failed to cache steps', e);
     }
