@@ -22,16 +22,23 @@ const ollama = new Ollama({
 
 const MAX_RETRIES = 2;
 
-export async function call_ollama<T extends ZodRawShape>(prompt: string, schema: ZodObject<T>): Promise<z.infer<ZodObject<T>>> {
+export async function call_ollama<T extends ZodRawShape>(prompt: string, schema: ZodObject<T>, modelOverride?: string): Promise<z.infer<ZodObject<T>>> {
     let lastError: unknown;
+    const model = modelOverride || (modelName as string);
+    console.log(`[ollama] Using model: ${model}, override: ${modelOverride}`);
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
             const response = await ollama.chat({
-                model: modelName as string,
+                model,
                 messages: [{ role: 'user', content: prompt }],
                 format: toJSONSchema(schema),
-                think: false
+                think: false,
+                options: {
+                    num_predict: 2048,
+                    temperature: 0,
+                    repeat_penalty: 1.0
+                }
             });
             // console.log(response)
             if (!response.message?.content) {

@@ -30,6 +30,7 @@ const solverRouter = express.Router();
  *             $ref: '#/components/schemas/solveRequest'
  *           example:
  *             question: "Solve for x: 2x + 3 = 11"
+ *             model: "qwen2.5:7b"
  *     responses:
  *       '200':
  *         description: Solved
@@ -66,6 +67,7 @@ solverRouter.post('/solve', globalRateLimit, solve);
  *             $ref: '#/components/schemas/solveRequest'
  *           example:
  *             question: "Solve: integral of x^2 dx"
+ *             model: "qwen2.5:7b"
  *     responses:
  *       '200':
  *         description: Solved using AI

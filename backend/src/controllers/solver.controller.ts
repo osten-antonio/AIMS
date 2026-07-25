@@ -6,15 +6,18 @@ import { call_ollama } from "../services/ollama.service";
 import { sendErrorResponse } from "../lib/error-response";
 
 export async function solve(req: Request, res: Response) {
-    const { question } = solveRequest.parse(req.body);
+    const { question, model } = solveRequest.parse(req.body);
+    console.log(`[solve] Model: ${model}, Question: ${question.substring(0, 50)}...`);
 
     try {
         const result = await solverService.tryMathSolve(question);
 
         if (result.solved) {
+            console.log(`[solve] Math solver succeeded: ${result.answer}`);
             const id = randomUUID();
             return res.json(solveResponse.parse({ answer: result.answer, id }));
         }
+        console.log(`[solve] Math solver failed, using LLM model: ${model}`);
         
         const prompt = `
 			Solve the following math question and 
@@ -23,7 +26,7 @@ export async function solve(req: Request, res: Response) {
 			If it is not a math question, respond with "Not a math question" 
 			Question: ${question}
         `;
-        const aiResp = await call_ollama(prompt, solveResponse);
+        const aiResp = await call_ollama(prompt, solveResponse, model);
         if (JSON.stringify(aiResp).includes("Not a math question")) {
             throw Error('Not a math question');
         }
@@ -42,17 +45,17 @@ export async function solve(req: Request, res: Response) {
 }
 
 export async function solveAI(req: Request, res: Response) {
-    const { question } = solveRequest.parse(req.body);
+    const { question, model } = solveRequest.parse(req.body);
     try {
                
-        const prompt = `
+         const prompt = `
 			Solve the following math question and 
 			return ONLY valid JSON matching the schema {\n  "answer": "<string>",\n  "id": "<string>"\n}
 			If it is a math question but unsolvable, respond with exactly "None"
 			If it is not a math question, respond with "Not a math question" 
 			Question: ${question}
         `;
-        const aiResp = await call_ollama(prompt, solveResponse);
+        const aiResp = await call_ollama(prompt, solveResponse, model);
         if (JSON.stringify(aiResp).includes("Not a math question")) {
             throw Error('Not a math question');
         }
