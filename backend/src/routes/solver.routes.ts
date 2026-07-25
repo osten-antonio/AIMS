@@ -5,6 +5,7 @@ import { solve, solveAI } from "../controllers/solver.controller";
 import * as statsService from "../services/statistics.service";
 import { sendErrorResponse } from "../lib/error-response";
 import { statisticsOperations } from "../controllers/statistics.controller";
+import { getCacheStats, resetCacheStats } from "../lib/solver-cache-stats";
 
 /**
  * @openapi
@@ -89,6 +90,37 @@ solverRouter.post('/solve', globalRateLimit, solve);
  *               code: "NOT_A_MATH_QUESTION"
  */
 solverRouter.post('/solve/ai', ollamaRateLimit, solveAI);
+
+/**
+ * @openapi
+ * /solver/cache-stats:
+ *   get:
+ *     tags: [Solver]
+ *     summary: Get cache performance statistics
+ *     description: Returns hit/miss counts and average response times for cached vs cold solver calls.
+ *     responses:
+ *       '200':
+ *         description: Cache statistics
+ */
+solverRouter.get('/cache-stats', globalRateLimit, (_req, res) => {
+    res.json(getCacheStats());
+});
+
+/**
+ * @openapi
+ * /solver/cache-reset:
+ *   post:
+ *     tags: [Solver]
+ *     summary: Reset cache performance statistics
+ *     description: Clears all collected cache hit/miss timing data.
+ *     responses:
+ *       '200':
+ *         description: Stats reset
+ */
+solverRouter.post('/cache-reset', globalRateLimit, (_req, res) => {
+    resetCacheStats();
+    res.json({ message: "Cache stats reset" });
+});
 
 // Known statistics operations. Membership is checked before dispatching the
 // user-controlled `:operation` param so it can't resolve to an inherited
