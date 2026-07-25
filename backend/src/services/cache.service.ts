@@ -4,6 +4,7 @@ import { createHash } from "crypto";
 type StepItem = { step: number; explanation: string; equation?: string | undefined };
 
 const DEFAULT_TTL = parseInt(process.env.REDIS_TTL_SECONDS ?? "604800", 10); // 7 days
+const CACHE_DISABLED = process.env.DISABLE_CACHE === "true";
 
 function longHashFor(text: string) {
   return createHash("sha256").update(text).digest("hex");
@@ -45,6 +46,7 @@ export async function setAnswerForQuestionWithSubmissionId(question: string, ans
 }
 
 export async function getStepsForQuestion(question: string): Promise<StepItem[] | null> {
+  if (CACHE_DISABLED) return null;
   const long = longHashFor(question);
   const v = await redis.get(`steps:${long}`);
   if (!v) return null;
@@ -56,6 +58,7 @@ export async function getStepsForQuestion(question: string): Promise<StepItem[] 
 }
 
 export async function setStepsForQuestion(question: string, steps: StepItem[], submissionId?: string, ttl = DEFAULT_TTL) {
+  if (CACHE_DISABLED) return;
   const long = longHashFor(question);
   await redis.set(`steps:${long}`, JSON.stringify(steps), "EX", ttl);
   if (submissionId) {
@@ -68,6 +71,7 @@ type HintItem = { text: string };
 type HintData = { hintGeneral: string; hints: HintItem[] };
 
 export async function getHintsForQuestion(question: string): Promise<HintData | null> {
+  if (CACHE_DISABLED) return null;
   const long = longHashFor(question);
   const v = await redis.get(`hints:${long}`);
   if (!v) return null;
@@ -79,6 +83,7 @@ export async function getHintsForQuestion(question: string): Promise<HintData | 
 }
 
 export async function setHintsForQuestion(question: string, hints: HintData, ttl = DEFAULT_TTL) {
+  if (CACHE_DISABLED) return;
   const long = longHashFor(question);
   await redis.set(`hints:${long}`, JSON.stringify(hints), "EX", ttl);
 }
